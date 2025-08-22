@@ -27,11 +27,9 @@ app.post('/webhooks/whatsapp', async (req, res) => {
 
   let reply;
   try {
-    // 1) Guardrail local
     if (isCrisis(body)) {
       reply = crisisMessage();
     } else {
-      // 2) Llamada a GPT-4o mini
       const system = buildSystemPrompt();
       const user   = buildUserPrompt(body);
       const aiText = await callLLM([
@@ -39,20 +37,17 @@ app.post('/webhooks/whatsapp', async (req, res) => {
         { role: "user", content: user }
       ]);
 
-      // 3) Procesar etiqueta
       const tag = (aiText.match(/^\[(INFO|LEAD|HUMANO|CRISIS)\]/i)?.[1] || "INFO").toUpperCase();
       const clean = aiText.replace(/^\[(INFO|LEAD|HUMANO|CRISIS)\]\s*/i, "").trim();
 
       if (tag === "CRISIS") {
         reply = crisisMessage();
       } else if (tag === "LEAD") {
-        // TODO: guardar en Mongo/Sheets
         reply = clean + "\n\nHe tomado nota para contactarte pronto 💬";
       } else if (tag === "HUMANO") {
         reply = clean + "\n\nTe conecto con alguien del equipo 👤";
-        // TODO: notificación a un número interno
       } else {
-        reply = clean; // INFO
+        reply = clean;
       }
     }
 
@@ -61,6 +56,7 @@ app.post('/webhooks/whatsapp', async (req, res) => {
       to: from,
       body: reply
     });
+
     res.sendStatus(200);
   } catch (e) {
     console.error("Webhook error:", e);
@@ -69,5 +65,5 @@ app.post('/webhooks/whatsapp', async (req, res) => {
 });
 
 const port = process.env.PORT || 3000;
-app.get('/', (_req, res) => res.send('Bot con GPT-4o mini listo 🚀'));
+app.get('/', (_req, res) => res.send('Bot IA con Groq listo 🚀'));
 app.listen(port, () => console.log(`Server on :${port}`));
